@@ -26,17 +26,12 @@ export async function handler(
   }
   try {
     const { body, headers } = event;
-    console.log('telegramLambdaUrl:', telegramLambdaUrl);
-    console.log('webhookSecret:', webhookSecret);
-    console.log('body, headers:', body, headers);
     if (!body || !webhookSecret) {
       return createErrorResponse(StatusCodes.NOT_ACCEPTABLE);
     }
     const hmac = crypto.createHmac('sha1', webhookSecret).update(body);
     const hash = `sha1=${hmac.digest('hex')}`;
     const expoSignature = headers['expo-signature'];
-    console.log('hash:', hash);
-    console.log('expoSignature:', expoSignature);
     if (!safeCompare(expoSignature, hash)) {
       return createErrorResponse(StatusCodes.UNAUTHORIZED);
     }
