@@ -3,11 +3,19 @@ import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import crypto from 'crypto';
 import safeCompare from 'safe-compare';
 
+import NodeFetcher from './utils/fetcher';
+
 type LambdaResponse = {
   statusCode: number;
   headers?: { [name: string]: string };
   body: string;
 };
+
+const defaultTelegramLambdaUrl =
+  'http://localhost:8888/.netlify/functions/telegram-notifier';
+const telegramLambdaUrl =
+  process.env.TELEGRAM_BOT_LAMBDA_URL || defaultTelegramLambdaUrl;
+const webhookSecret = process.env.EXPO_WEBHOOK_SECRET;
 
 export async function handler(
   event: APIGatewayEvent
@@ -18,19 +26,22 @@ export async function handler(
   }
   try {
     const { body, headers } = event;
-    if (!body || !process.env.EXPO_WEBHOOK_SECRET) {
+    if (!body || !webhookSecret) {
       return createErrorResponse(StatusCodes.NOT_ACCEPTABLE);
     }
-    const hmac = crypto
-      .createHmac('sha1', process.env.EXPO_WEBHOOK_SECRET)
-      .update(body);
+    const hmac = crypto.createHmac('sha1', webhookSecret).update(body);
     const hash = `sha1=${hmac.digest('hex')}`;
     const expoSignature = headers['expo-signature'];
     if (!safeCompare(expoSignature, hash)) {
       return createErrorResponse(StatusCodes.UNAUTHORIZED);
     }
-    const { msg } = JSON.parse(body);
-    return createSuccessResponse({ msg });
+    const parsed = JSON.parse(body);
+    // TODO: await upload to S3 bucket
+    await NodeFetcher.POST(telegramLambdaUrl, {
+      message: 'tranfering the artifact to the S3 bucket',
+      ...parsed
+    });
+    return createSuccessResponse({ ...parsed });
   } catch (e) {
     console.log(e);
     return createErrorResponse(StatusCodes.EXPECTATION_FAILED);
