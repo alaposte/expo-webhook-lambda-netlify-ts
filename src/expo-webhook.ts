@@ -19,7 +19,7 @@ export async function handler(
   try {
     const { body, headers } = event;
     if (!body || !process.env.EXPO_WEBHOOK_SECRET) {
-      return createErrorResponse(StatusCodes.NO_CONTENT);
+      return createErrorResponse(StatusCodes.NOT_ACCEPTABLE);
     }
     const hmac = crypto
       .createHmac('sha1', process.env.EXPO_WEBHOOK_SECRET)
