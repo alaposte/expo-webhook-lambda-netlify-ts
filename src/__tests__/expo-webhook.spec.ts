@@ -1,5 +1,8 @@
 import { apiGatewayEventMock } from '@schedulino/aws-lambda-test-utils';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
+import { Response } from 'node-fetch';
+
+import NodeFetcher from '../utils/fetcher';
 import { handler } from '../expo-webhook';
 
 const originalEnv = process.env;
@@ -80,7 +83,12 @@ describe('expo-webhook', () => {
           ...eventMock.headers,
           'expo-signature': 'sha1=f1d7e09e0c8781aaba708be3aea8e13ed0e925cd'
         };
+        const spy = jest.fn((url: string, body: BodyInit) => {
+          return Promise.resolve(new Response());
+        });
+        NodeFetcher.POST = spy;
         const response = await handler(eventMock);
+        expect(spy).toHaveBeenCalledTimes(1);
         expect(response.statusCode).toEqual(StatusCodes.OK);
         expect(JSON.parse(response.body)).toMatchObject({
           msg: 'sha1-valid-test-hash'
