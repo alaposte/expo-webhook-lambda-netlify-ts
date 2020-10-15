@@ -36,3 +36,6 @@ typings/
 
 # dist folder with build
 dist
+
+# lambda function build folder
+lambda

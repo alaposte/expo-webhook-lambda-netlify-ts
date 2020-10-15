@@ -1,0 +1,12 @@
+[build]
+command = "yarn build"
+functions = "lambda"
+# publish = "dist"
+
+# this is actually a Rewrite
+# totally optional, but makes up for
+# a much better UX
+[[redirects]]
+from = "/"
+status = 200
+to = "/.netlify/functions/index"
