@@ -31,7 +31,7 @@ export async function handler({ body }: APIGatewayEvent) {
         ACL: 'public-read'
       })
       .promise();
-    // await NodeFetcher.POST(telegramLambdaUrl, { ...JSON.parse(body), ...res });
+    await NodeFetcher.POST(telegramLambdaUrl, { ...JSON.parse(body), ...res });
     return createSuccessResponse({ ...res });
   } catch (err) {
     console.log('upload-to-s3-bucket:handler error: ', err);
