@@ -1,42 +1,31 @@
 import { APIGatewayEvent } from 'aws-lambda';
-import { getReasonPhrase, StatusCodes } from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import TeleBot from 'node-telegram-bot-api';
 
-const {
-  SECRET_TELEGRAM_BOT_TOKEN: token,
-  SECRET_TELEGRAM_BOT_CHAT_ID: chatId
-} = process.env;
+import {
+  SECRET_TELEGRAM_BOT_TOKEN as token,
+  SECRET_TELEGRAM_BOT_CHAT_ID as chatId
+} from './utils/constants';
+import { createErrorResponse, createSuccessResponse } from './utils/responses';
 
-export async function handler(event: APIGatewayEvent) {
-  const { body, headers, httpMethod } = event;
+export async function handler({ body, headers, httpMethod }: APIGatewayEvent) {
   if (httpMethod !== 'POST') {
-    return {
-      statusCode: StatusCodes.UNAUTHORIZED,
-      body: '',
-      errors: [getReasonPhrase(StatusCodes.UNAUTHORIZED)]
-    };
+    return createErrorResponse(StatusCodes.UNAUTHORIZED);
   }
   if (!token || !chatId) {
-    return {
-      statusCode: StatusCodes.PRECONDITION_FAILED,
-      body: '',
-      errors: [getReasonPhrase(StatusCodes.PRECONDITION_FAILED)]
-    };
+    return createErrorResponse(StatusCodes.PRECONDITION_FAILED);
+  }
+  if (!body) {
+    return createErrorResponse(StatusCodes.EXPECTATION_FAILED);
   }
   const bot = new TeleBot(token);
   try {
     await bot.sendMessage(chatId, buildBotMessage(body, headers));
-    return {
-      statusCode: StatusCodes.OK,
-      body: '',
-      errors: null
-    };
+    const parsed = JSON.parse(body);
+    return createSuccessResponse(parsed);
   } catch (e) {
     await bot.sendMessage(chatId, buildBotMessage(null, null, [e.message]));
-    return {
-      statusCode: StatusCodes.NOT_FOUND,
-      errors: [e.message]
-    };
+    return createErrorResponse(StatusCodes.NOT_FOUND);
   }
 }
 

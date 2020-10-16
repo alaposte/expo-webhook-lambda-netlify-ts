@@ -1,21 +1,13 @@
 import { APIGatewayEvent /*, Callback, Context*/ } from 'aws-lambda';
-import { getReasonPhrase, StatusCodes } from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import crypto from 'crypto';
 import safeCompare from 'safe-compare';
 
 import NodeFetcher from './utils/fetcher';
-
-type LambdaResponse = {
-  statusCode: number;
-  headers?: { [name: string]: string };
-  body: string;
-};
-
-const defaultTelegramLambdaUrl =
-  'http://localhost:8888/.netlify/functions/telegram-notifier';
-const telegramLambdaUrl =
-  process.env.TELEGRAM_BOT_LAMBDA_URL || defaultTelegramLambdaUrl;
-const webhookSecret = process.env.EXPO_WEBHOOK_SECRET;
+import { sestrelS3BucketUrl } from './utils/constants';
+import { LambdaResponse } from './utils/types';
+import { createErrorResponse } from './utils/responses';
+import { EXPO_WEBHOOK_SECRET as webhookSecret } from './utils/constants';
 
 export async function handler(
   event: APIGatewayEvent
@@ -26,7 +18,6 @@ export async function handler(
   }
   try {
     const { body, headers } = event;
-    console.log('telegramLambdaUrl:', telegramLambdaUrl);
     console.log('webhookSecret:', webhookSecret);
     console.log('body, headers:', body, headers);
     if (!body || !webhookSecret) {
@@ -36,39 +27,24 @@ export async function handler(
     const hash = `sha1=${hmac.digest('hex')}`;
     const expoSignature = headers['expo-signature'];
     console.log('hash:', hash);
-    console.log('expoSignature:', expoSignature);
+    console.log('sign:', expoSignature);
     if (!safeCompare(expoSignature, hash)) {
       return createErrorResponse(StatusCodes.UNAUTHORIZED);
     }
     const parsed = JSON.parse(body);
     // TODO: await upload to S3 bucket
-    await NodeFetcher.POST(telegramLambdaUrl, {
+    const resp = await NodeFetcher.POST(sestrelS3BucketUrl, {
       message: 'tranfering the artifact to the S3 bucket',
       ...parsed
     });
-    return createSuccessResponse({ ...parsed });
+
+    // return resp.json();
+
+    const json = await resp.json();
+    console.log('json response in expo-webhook lambda function:', json);
+    return json;
   } catch (e) {
     console.log(e);
     return createErrorResponse(StatusCodes.EXPECTATION_FAILED);
   }
 }
-
-const createSuccessResponse = (body: Record<string, unknown>) => {
-  return createResponse(StatusCodes.OK, body);
-};
-
-const createErrorResponse = (code: number) => {
-  return createResponse(code, [getReasonPhrase(code)]);
-};
-
-const createResponse = (
-  code: number,
-  body: string[] | Record<string, unknown>,
-  headers = {}
-): LambdaResponse => {
-  return {
-    statusCode: code,
-    body: JSON.stringify(body),
-    headers: Object.assign(headers, { 'Content-Type': 'application/json' })
-  };
-};

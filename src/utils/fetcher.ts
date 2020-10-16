@@ -1,17 +1,13 @@
-import { URLSearchParams } from 'url';
 import fetch, { Response } from 'node-fetch';
 
 export interface IFetcher {
-  GET: (url: string, body: any) => Promise<Response>;
+  GET: (url: string) => Promise<Response>;
   POST: (url: string, body: any) => Promise<Response>;
 }
 
 const NodeFetcher: IFetcher = {
-  GET: (url: string, body: any) => {
-    return fetch(url, {
-      method: 'GET',
-      body: new URLSearchParams(body)
-    });
+  GET: (url: string) => {
+    return fetch(url, { method: 'GET' });
   },
   POST: (url: string, body: any, headers = {}) => {
     return fetch(url, {
