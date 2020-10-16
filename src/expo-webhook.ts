@@ -35,7 +35,8 @@ export async function handler(
     // TODO: await upload to S3 bucket
     const resp = await NodeFetcher.POST(sestrelS3BucketUrl, {
       message: 'tranfering the artifact to the S3 bucket',
-      ...parsed
+      ...parsed,
+      ...headers
     });
 
     // return resp.json();
